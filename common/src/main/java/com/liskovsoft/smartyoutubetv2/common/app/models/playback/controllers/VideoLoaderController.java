@@ -24,6 +24,7 @@ import com.liskovsoft.smartyoutubetv2.common.app.presenters.AppDialogPresenter;
 import com.liskovsoft.smartyoutubetv2.common.app.presenters.dialogs.VideoActionPresenter;
 import com.liskovsoft.smartyoutubetv2.common.exoplayer.selector.FormatItem;
 import com.liskovsoft.smartyoutubetv2.common.misc.MediaServiceManager;
+import com.liskovsoft.smartyoutubetv2.common.prefs.ContentBlockData;
 import com.liskovsoft.smartyoutubetv2.common.prefs.common.DataChangeBase.OnDataChange;
 import com.liskovsoft.smartyoutubetv2.common.prefs.GeneralData;
 import com.liskovsoft.smartyoutubetv2.common.prefs.PlayerData;
@@ -347,15 +348,23 @@ public class VideoLoaderController extends BasePlayerController implements OnDat
             mStateService.setHistoryBroken(formatInfo.isHistoryBroken());
         }
 
+        if (formatInfo.getPaidContentText() != null && ContentBlockData.instance(getContext()).isPaidContentNotificationEnabled()) {
+            MessageHelpers.showMessage(getContext(), formatInfo.getPaidContentText());
+        }
+
         if (formatInfo.isUnplayable()) {
             getPlayer().setTitle(formatInfo.getPlayabilityStatus());
             getPlayer().showProgressBar(false);
             mSuggestionsController.loadSuggestions(mLastVideo);
             bgImageUrl = mLastVideo.getBackgroundUrl();
-            // Sign in error (bot check error?)
-            //YouTubeServiceManager.instance().applyNoPlaybackFix();
-            YouTubeServiceManager.instance().applyAntiBotFix();
-            mPlayerTweaksData.enablePersistentAntiBotFix(true);
+
+            if (formatInfo.isHistoryBroken()) {
+                // Sign in error (bot check error?)
+                YouTubeServiceManager.instance().applyNoPlaybackFix();
+                YouTubeServiceManager.instance().applyAntiBotFix();
+                mPlayerTweaksData.enablePersistentAntiBotFix(true);
+            }
+
             scheduleNextVideoTimer(5_000);
         } else if (formatInfo.containsDashVideoFormats() && acceptDashVideoFormats(formatInfo)) {
             Log.d(TAG, "Found regular video in dash format. Loading...");
@@ -824,13 +833,20 @@ public class VideoLoaderController extends BasePlayerController implements OnDat
     }
 
     private void enableFasterDataSource() {
-        int fasterDataSource = getFasterDataSource();
-        if (mPlayerTweaksData.getPlayerDataSource() != fasterDataSource) {
-            mPlayerTweaksData.setPlayerDataSource(fasterDataSource);
+        if (isFasterDataSourceEnabled()) {
+            return;
         }
+
+        mPlayerTweaksData.setPlayerDataSource(getFasterDataSource());
     }
 
     private boolean isFasterDataSourceEnabled() {
+        if (GeneralData.instance(getContext()).isProxyEnabled()) {
+            // Disable auto switch for proxies.
+            // Current source may have better compatibility with proxies than fastest one.
+            return true;
+        }
+
         int fasterDataSource = getFasterDataSource();
         return mPlayerTweaksData.getPlayerDataSource() == fasterDataSource;
     }
