@@ -508,6 +508,8 @@ public class PlayerUIController extends BasePlayerController {
     public void onButtonClicked(int buttonId, int buttonState) {
         if (buttonId == R.id.action_rotate) {
             onRotate();
+        } else if (buttonId == R.id.action_flip) {
+            onFlip();
         } else if (buttonId == R.id.action_screen_off || buttonId == R.id.action_screen_off_timeout) {
             prepareScreenOff();
             applyScreenOff(buttonState);
@@ -820,6 +822,14 @@ public class PlayerUIController extends BasePlayerController {
         mPlayerData.setVideoRotation(rotation);
     }
 
+    private void onFlip() {
+        boolean flipEnabled = mPlayerData.isVideoFlipEnabled();
+        boolean newFlipEnabled = !flipEnabled;
+        getPlayer().setVideoFlipEnabled(newFlipEnabled);
+        getPlayer().setButtonState(R.id.action_flip, newFlipEnabled ? PlayerUI.BUTTON_ON : PlayerUI.BUTTON_OFF);
+        mPlayerData.setVideoFlipEnabled(newFlipEnabled);
+    }
+
     private void onSubscribe(int buttonState) {
         if (getPlayer().getVideo() == null) {
             return;
@@ -883,8 +893,8 @@ public class PlayerUIController extends BasePlayerController {
     }
 
     private int getNextRepeatMode(int buttonState) {
-        Integer[] modeList = {PlayerEngineConstants.REPEAT_MODE_ALL, PlayerEngineConstants.REPEAT_MODE_ONE, PlayerEngineConstants.REPEAT_MODE_SHUFFLE,
-                PlayerEngineConstants.REPEAT_MODE_LIST, PlayerEngineConstants.REPEAT_MODE_REVERSE_LIST, PlayerEngineConstants.REPEAT_MODE_PAUSE, PlayerEngineConstants.REPEAT_MODE_CLOSE};
+        Integer[] modeList = {PlayerEngineConstants.PLAYBACK_MODE_ALL, PlayerEngineConstants.PLAYBACK_MODE_ONE, PlayerEngineConstants.PLAYBACK_MODE_SHUFFLE,
+                PlayerEngineConstants.PLAYBACK_MODE_LIST, PlayerEngineConstants.PLAYBACK_MODE_REVERSE_LIST, PlayerEngineConstants.PLAYBACK_MODE_PAUSE, PlayerEngineConstants.PLAYBACK_MODE_CLOSE};
         int nextMode = Helpers.getNextValue(buttonState, modeList);
         return nextMode;
     }

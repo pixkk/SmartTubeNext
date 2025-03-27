@@ -59,6 +59,7 @@ public class PlayerData extends DataChangeBase implements PlayerEngineConstants,
     private int mVideoZoom;
     private float mVideoAspectRatio;
     private int mVideoRotation;
+    private boolean mIsVideoFlipEnabled;
     private int mSeekPreviewMode;
     private float mSpeed;
     private float mLastSpeed;
@@ -538,6 +539,15 @@ public class PlayerData extends DataChangeBase implements PlayerEngineConstants,
         return mVideoRotation;
     }
 
+    public void setVideoFlipEnabled(boolean enabled) {
+        mIsVideoFlipEnabled = enabled;
+        persistState();
+    }
+
+    public boolean isVideoFlipEnabled() {
+        return mIsVideoFlipEnabled;
+    }
+
     public void setSpeed(float speed) {
         setSpeed(null, speed);
     }
@@ -818,7 +828,7 @@ public class PlayerData extends DataChangeBase implements PlayerEngineConstants,
         mLastSpeed = Helpers.parseFloat(split, 48, 1.0f);
         mVideoRotation = Helpers.parseInt(split, 49, 0);
         mVideoZoom = Helpers.parseInt(split, 50, -1);
-        mRepeatMode = Helpers.parseInt(split, 51, PlayerEngineConstants.REPEAT_MODE_ALL);
+        mRepeatMode = Helpers.parseInt(split, 51, PlayerEngineConstants.PLAYBACK_MODE_ALL);
         mAudioLanguage = Helpers.parseStr(split, 52, LocaleUtility.getCurrentLanguage(mPrefs.getContext()));
         mSubtitleLanguage = Helpers.parseStr(split, 53, LocaleUtility.getCurrentLanguage(mPrefs.getContext()));
         //String enabledSubtitles = Helpers.parseStr(split, 54);
@@ -829,6 +839,7 @@ public class PlayerData extends DataChangeBase implements PlayerEngineConstants,
         mPitch = Helpers.parseFloat(split, 58, 1.0f);
         mIsSkipShortsEnabled = Helpers.parseBoolean(split, 59, false);
         mLastAudioLanguages = Helpers.parseStrList(split, 60);
+        mIsVideoFlipEnabled = Helpers.parseBoolean(split, 61, false);
 
         if (speeds != null) {
             for (String speedSpec : speeds) {
@@ -855,7 +866,7 @@ public class PlayerData extends DataChangeBase implements PlayerEngineConstants,
                 mStartSeekIncrementMs, null, mSubtitleScale, mPlayerVolume, mIsTooltipsEnabled, mSubtitlePosition, mIsNumberKeySeekEnabled,
                 mIsSkip24RateEnabled, mAfrPauseMs, mIsLiveChatEnabled, mLastSubtitleFormats, mLastSpeed, mVideoRotation,
                 mVideoZoom, mRepeatMode, mAudioLanguage, mSubtitleLanguage, mEnabledSubtitlesPerChannel, mIsSubtitlesPerChannelEnabled,
-                mIsSpeedPerChannelEnabled, Helpers.mergeArray(mSpeeds.values().toArray()), mPitch, mIsSkipShortsEnabled, mLastAudioLanguages
+                mIsSpeedPerChannelEnabled, Helpers.mergeArray(mSpeeds.values().toArray()), mPitch, mIsSkipShortsEnabled, mLastAudioLanguages, mIsVideoFlipEnabled
         ));
 
         onDataChange();

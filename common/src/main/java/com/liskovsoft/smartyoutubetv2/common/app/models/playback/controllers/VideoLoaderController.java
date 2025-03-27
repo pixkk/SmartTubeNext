@@ -169,7 +169,7 @@ public class VideoLoaderController extends BasePlayerController implements OnDat
     public void onVideoLoaded(Video video) {
         mLastErrorType = -1;
         Utils.removeCallbacks(mOnLongBuffering);
-        getPlayer().setButtonState(R.id.action_repeat, video.finishOnEnded ? PlayerEngineConstants.REPEAT_MODE_CLOSE : mPlayerData.getRepeatMode());
+        getPlayer().setButtonState(R.id.action_repeat, video.finishOnEnded ? PlayerEngineConstants.PLAYBACK_MODE_CLOSE : mPlayerData.getRepeatMode());
     }
 
     @Override
@@ -222,9 +222,9 @@ public class VideoLoaderController extends BasePlayerController implements OnDat
 
         Video video = getPlayer().getVideo();
         if (video != null && video.finishOnEnded) {
-            repeatMode = PlayerEngineConstants.REPEAT_MODE_CLOSE;
+            repeatMode = PlayerEngineConstants.PLAYBACK_MODE_CLOSE;
         } else if (video != null && video.belongsToShortsGroup() && mPlayerTweaksData.isLoopShortsEnabled()) {
-            repeatMode = PlayerEngineConstants.REPEAT_MODE_ONE;
+            repeatMode = PlayerEngineConstants.PLAYBACK_MODE_ONE;
         }
 
         applyRepeatMode(repeatMode);
@@ -648,7 +648,7 @@ public class VideoLoaderController extends BasePlayerController implements OnDat
         }
 
         switch (repeatMode) {
-            case PlayerEngineConstants.REPEAT_MODE_REVERSE_LIST:
+            case PlayerEngineConstants.PLAYBACK_MODE_REVERSE_LIST:
                 if (video.hasPlaylist() || video.belongsToChannelUploads() || video.belongsToChannel()) {
                     VideoGroup group = video.getGroup();
                     if (group != null && group.indexOf(video) != 0) { // stop after first
@@ -656,14 +656,14 @@ public class VideoLoaderController extends BasePlayerController implements OnDat
                     }
                     break;
                 }
-            case PlayerEngineConstants.REPEAT_MODE_ALL:
-            case PlayerEngineConstants.REPEAT_MODE_SHUFFLE:
+            case PlayerEngineConstants.PLAYBACK_MODE_ALL:
+            case PlayerEngineConstants.PLAYBACK_MODE_SHUFFLE:
                 loadNext();
                 break;
-            case PlayerEngineConstants.REPEAT_MODE_ONE:
+            case PlayerEngineConstants.PLAYBACK_MODE_ONE:
                 getPlayer().setPositionMs(100); // fix frozen image on Android 4?
                 break;
-            case PlayerEngineConstants.REPEAT_MODE_CLOSE:
+            case PlayerEngineConstants.PLAYBACK_MODE_CLOSE:
                 // Close player if suggestions not shown
                 // Except when playing from queue
                 if (mPlaylist.getNext() != null) {
@@ -676,7 +676,7 @@ public class VideoLoaderController extends BasePlayerController implements OnDat
                     }
                 }
                 break;
-            case PlayerEngineConstants.REPEAT_MODE_PAUSE:
+            case PlayerEngineConstants.PLAYBACK_MODE_PAUSE:
                 // Stop player after each video.
                 // Except when playing from queue
                 if (mPlaylist.getNext() != null) {
@@ -687,8 +687,8 @@ public class VideoLoaderController extends BasePlayerController implements OnDat
                     getPlayer().showSuggestions(true);
                 }
                 break;
-            case PlayerEngineConstants.REPEAT_MODE_LIST:
-                // stop player (if not playing playlist)
+            case PlayerEngineConstants.PLAYBACK_MODE_LIST:
+                // if video has a playlist load next or restart playlist
                 if (video.hasNextPlaylist() || mPlaylist.getNext() != null) {
                     loadNext();
                 } else {
@@ -697,9 +697,39 @@ public class VideoLoaderController extends BasePlayerController implements OnDat
                     getPlayer().showSuggestions(true);
                 }
                 break;
+            case PlayerEngineConstants.PLAYBACK_MODE_LOOP_LIST:
+                // if video has a playlist load next or restart playlist
+                if (video.hasNextPlaylist() || mPlaylist.getNext() != null) {
+                    loadNext();
+                } else {
+                    restartPlaylist();
+                }
+                break;
             default:
                 Log.e(TAG, "Undetected repeat mode " + repeatMode);
                 break;
+        }
+    }
+
+    private void restartPlaylist() {
+        Video currentVideo = getPlayer().getVideo();
+        VideoGroup group = currentVideo.getGroup(); // Get the VideoGroup (playlist)
+
+        if (group != null && !group.isEmpty()) {
+            // Clear current playlist
+            mPlaylist.clear();
+
+            // Add all videos from VideoGroup
+            mPlaylist.addAll(group.getVideos());
+            
+            Video firstVideo = group.get(0);
+            mPlaylist.setCurrent(firstVideo);
+            openVideoInt(firstVideo);
+        } else {
+            Log.e(TAG, "VideoGroup is null or empty. Can't restart playlist.");
+            getPlayer().setPositionMs(getPlayer().getDurationMs());
+            getPlayer().setPlayWhenReady(false);
+            getPlayer().showSuggestions(true);
         }
     }
 
@@ -760,7 +790,7 @@ public class VideoLoaderController extends BasePlayerController implements OnDat
             return;
         }
 
-        if (mPlayerData.getRepeatMode() == PlayerEngineConstants.REPEAT_MODE_SHUFFLE) {
+        if (mPlayerData.getRepeatMode() == PlayerEngineConstants.PLAYBACK_MODE_SHUFFLE) {
             Video video = new Video();
             video.playlistId = mLastVideo.playlistId;
             VideoGroup topRow = getPlayer().getSuggestionsByIndex(0);
